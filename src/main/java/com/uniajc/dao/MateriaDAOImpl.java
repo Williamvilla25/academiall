@@ -1,33 +1,27 @@
 package com.uniajc.dao;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-
 import com.uniajc.modelo.Materia;
 import com.uniajc.util.ConexionBD;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MateriaDAOImpl implements IMateriaDAO {
 
     @Override
     public boolean guardar(Materia materia) {
-        String sql = "INSERT INTO materias (codigo_materia, nombre_materia, creditos, semestre) VALUES (?, ?, ?, ?) " +
-                     "ON CONFLICT (codigo_materia) DO UPDATE SET nombre_materia = EXCLUDED.nombre_materia, " +
-                     "creditos = EXCLUDED.creditos, semestre = EXCLUDED.semestre";
-        try {
-            Connection conn = ConexionBD.obtenerInstancia().getConexion();
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                stmt.setString(1, materia.getCodigoMateria());
-                stmt.setString(2, materia.getNombreMateria());
-                stmt.setInt(3, materia.getCreditos());
-                stmt.setInt(4, materia.getSemestre());
-                return stmt.executeUpdate() > 0;
-            }
+        String sql = "INSERT INTO materias (codigo_materia, nombre_materia, creditos, semestre) VALUES (?, ?, ?, ?)";
+        try (Connection conn = ConexionBD.obtenerInstancia().getConexion();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, materia.getCodigoMateria());
+            pstmt.setString(2, materia.getNombreMateria());
+            pstmt.setInt(3, materia.getCreditos());
+            pstmt.setInt(4, materia.getSemestre());
+            pstmt.executeUpdate();
+            return true;
         } catch (SQLException e) {
-            System.err.println("Error en MateriaDAOImpl.guardar: " + e.getMessage());
+            System.err.println("Error al guardar materia: " + e.getMessage());
             return false;
         }
     }
@@ -35,18 +29,21 @@ public class MateriaDAOImpl implements IMateriaDAO {
     @Override
     public Materia buscarPorCodigo(String codigoMateria) {
         String sql = "SELECT codigo_materia, nombre_materia, creditos, semestre FROM materias WHERE codigo_materia = ?";
-        try {
-            Connection conn = ConexionBD.obtenerInstancia().getConexion();
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                stmt.setString(1, codigoMateria);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) {
-                        return mapearMateria(rs);
-                    }
+        try (Connection conn = ConexionBD.obtenerInstancia().getConexion();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, codigoMateria);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    Materia m = new Materia();
+                    m.setCodigoMateria(rs.getString("codigo_materia"));
+                    m.setNombreMateria(rs.getString("nombre_materia"));
+                    m.setCreditos(rs.getInt("creditos"));
+                    m.setSemestre(rs.getInt("semestre"));
+                    return m;
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error en MateriaDAOImpl.buscarPorCodigo: " + e.getMessage());
+            System.err.println("Error al buscar materia por código: " + e.getMessage());
         }
         return null;
     }
@@ -54,47 +51,28 @@ public class MateriaDAOImpl implements IMateriaDAO {
     @Override
     public List<Materia> listarPorProfesor(String codigoProfesor) {
         List<Materia> lista = new ArrayList<>();
-        String sql = "SELECT codigo_materia, nombre_materia, creditos, semestre FROM materias WHERE profesor_id = ?";
-        try {
-            Connection conn = ConexionBD.obtenerInstancia().getConexion();
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                stmt.setString(1, codigoProfesor);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        lista.add(mapearMateria(rs));
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Error en MateriaDAOImpl.listarPorProfesor: " + e.getMessage());
-        }
+       
         return lista;
     }
 
     @Override
     public List<Materia> listarTodas() {
         List<Materia> lista = new ArrayList<>();
-        String sql = "SELECT codigo_materia, nombre_materia, creditos, semestre FROM materias ORDER BY codigo_materia ASC";
-        try {
-            Connection conn = ConexionBD.obtenerInstancia().getConexion();
-            try (PreparedStatement stmt = conn.prepareStatement(sql);
-                 ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    lista.add(mapearMateria(rs));
-                }
+        String sql = "SELECT codigo_materia, nombre_materia, creditos, semestre FROM materias";
+        try (Connection conn = ConexionBD.obtenerInstancia().getConexion();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                Materia m = new Materia();
+                m.setCodigoMateria(rs.getString("codigo_materia"));
+                m.setNombreMateria(rs.getString("nombre_materia"));
+                m.setCreditos(rs.getInt("creditos"));
+                m.setSemestre(rs.getInt("semestre"));
+                lista.add(m);
             }
         } catch (SQLException e) {
-            System.err.println("Error en MateriaDAOImpl.listarTodas: " + e.getMessage());
+            System.err.println("Error al listar materias: " + e.getMessage());
         }
         return lista;
-    }
-
-    private Materia mapearMateria(ResultSet rs) throws SQLException {
-        return new Materia(
-                rs.getString("codigo_materia"),
-                rs.getString("nombre_materia"),
-                rs.getInt("creditos"),
-                rs.getInt("semestre")
-        );
     }
 }
