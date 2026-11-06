@@ -149,4 +149,8 @@ public class VistaLogin extends JFrame {
     public void mostrarVentana() {
         SwingUtilities.invokeLater(() -> setVisible(true));
     }
+
+    public static void main(String[] args) {
+        new VistaLogin().mostrarVentana();
+    }
 }

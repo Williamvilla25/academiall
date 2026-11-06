@@ -6,7 +6,6 @@ com\uniajc\modelo\Usuario.class
 com\uniajc\controlador\ControladorLogin.class
 com\uniajc\dao\IMateriaDAO.class
 com\uniajc\modelo\Profesor.class
-com\uniajc\vista\VistaAcademica$1.class
 com\uniajc\dao\IUsuarioDAO.class
 com\uniajc\vista\VistaAdminDashboard$2.class
 com\uniajc\dao\MateriaDAOImpl.class

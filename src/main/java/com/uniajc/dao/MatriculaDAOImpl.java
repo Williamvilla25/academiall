@@ -1,19 +1,23 @@
 package com.uniajc.dao;
 
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.uniajc.modelo.EstadoMatricula;
 import com.uniajc.modelo.Materia;
 import com.uniajc.modelo.Matricula;
 import com.uniajc.util.ConexionBD;
 
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-
 public class MatriculaDAOImpl implements IMatriculaDAO {
 
     @Override
     public boolean guardar(Matricula matricula) {
-        String sql = "INSERT INTO matriculas (id_matricula, codigo_estudiante, codigo_materia, fecha_matricula, estado) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO matriculas (id_matricula, estudiante_id, codigo_materia, fecha_matricula, estado) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = ConexionBD.obtenerInstancia().getConexion();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, matricula.getIdMatricula());
@@ -31,7 +35,7 @@ public class MatriculaDAOImpl implements IMatriculaDAO {
 
     @Override
     public Matricula buscarPorId(String idMatricula) {
-        String sql = "SELECT m.id_matricula, m.codigo_estudiante, m.fecha_matricula, m.estado, " +
+        String sql = "SELECT m.id_matricula, m.estudiante_id, m.fecha_matricula, m.estado, " +
                      "mat.codigo_materia, mat.nombre_materia, mat.creditos, mat.semestre " +
                      "FROM matriculas m JOIN materias mat ON m.codigo_materia = mat.codigo_materia " +
                      "WHERE m.id_matricula = ?";
@@ -42,7 +46,7 @@ public class MatriculaDAOImpl implements IMatriculaDAO {
                 if (rs.next()) {
                     Matricula mat = new Matricula();
                     mat.setIdMatricula(rs.getString("id_matricula"));
-                    mat.setCodigoEstudiantil(rs.getString("codigo_estudiante"));
+                    mat.setCodigoEstudiantil(rs.getString("estudiante_id"));
                     mat.setFechaMatricula(rs.getDate("fecha_matricula").toLocalDate());
                     mat.setEstado(EstadoMatricula.valueOf(rs.getString("estado")));
 
@@ -65,10 +69,10 @@ public class MatriculaDAOImpl implements IMatriculaDAO {
     @Override
     public List<Matricula> listarPorEstudiante(String codigoEstudiantil) {
         List<Matricula> lista = new ArrayList<>();
-        String sql = "SELECT m.id_matricula, m.codigo_estudiante, m.fecha_matricula, m.estado, " +
+        String sql = "SELECT m.id_matricula, m.estudiante_id, m.fecha_matricula, m.estado, " +
                      "mat.codigo_materia, mat.nombre_materia, mat.creditos, mat.semestre " +
                      "FROM matriculas m JOIN materias mat ON m.codigo_materia = mat.codigo_materia " +
-                     "WHERE m.codigo_estudiante = ?";
+                     "WHERE m.estudiante_id = ?";
         try (Connection conn = ConexionBD.obtenerInstancia().getConexion();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, codigoEstudiantil);
@@ -76,7 +80,7 @@ public class MatriculaDAOImpl implements IMatriculaDAO {
                 while (rs.next()) {
                     Matricula mat = new Matricula();
                     mat.setIdMatricula(rs.getString("id_matricula"));
-                    mat.setCodigoEstudiantil(rs.getString("codigo_estudiante"));
+                    mat.setCodigoEstudiantil(rs.getString("estudiante_id"));
                     mat.setFechaMatricula(rs.getDate("fecha_matricula").toLocalDate());
                     mat.setEstado(EstadoMatricula.valueOf(rs.getString("estado")));
 

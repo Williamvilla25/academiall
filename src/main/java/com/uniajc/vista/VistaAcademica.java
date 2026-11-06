@@ -18,7 +18,6 @@ public class VistaAcademica extends JFrame {
         this(null);
     }
 
-   
     public VistaAcademica(Usuario usuarioActual) {
         this.usuarioActual = usuarioActual;
         this.controlador = new ControladorAcademico(new MateriaDAOImpl(), new MatriculaDAOImpl());
@@ -34,7 +33,7 @@ public class VistaAcademica extends JFrame {
     private void initComponents() {
         setLayout(new BorderLayout(10, 10));
 
-       
+        // Panel Superior con bienvenida y rol
         JPanel panelNorte = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
         String nombreUsuario = (usuarioActual != null) ? usuarioActual.getNombre() : "Invitado";
         String rolUsuario = (usuarioActual != null && usuarioActual.getRol() != null) ? usuarioActual.getRol().name() : "";
@@ -44,7 +43,7 @@ public class VistaAcademica extends JFrame {
         panelNorte.add(lblBienvenido);
         add(panelNorte, BorderLayout.NORTH);
 
-       
+        // Panel Central con área de texto y botones
         JPanel panelCentro = new JPanel(new BorderLayout(10, 10));
         panelCentro.setBorder(BorderFactory.createEmptyBorder(0, 15, 10, 15));
 
@@ -59,7 +58,7 @@ public class VistaAcademica extends JFrame {
 
         add(panelCentro, BorderLayout.CENTER);
 
-        
+        // Acción del botón para consultar la base de datos
         btnListarMaterias.addActionListener(e -> {
             List<Materia> materias = controlador.obtenerTodasLasMaterias();
             txtAreaResultados.setText("--- Oferta de Materias ---\n\n");
