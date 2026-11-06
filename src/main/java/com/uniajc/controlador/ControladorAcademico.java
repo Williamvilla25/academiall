@@ -9,16 +9,14 @@ import com.uniajc.modelo.Materia;
 import com.uniajc.modelo.Matricula;
 
 public class ControladorAcademico {
-    private IMateriaDAO materiaDAO;
-    private IMatriculaDAO matriculaDAO;
+    private final IMateriaDAO materiaDAO;
+    private final IMatriculaDAO matriculaDAO;
 
-  
     public ControladorAcademico(IMateriaDAO materiaDAO, IMatriculaDAO matriculaDAO) {
         this.materiaDAO = materiaDAO;
         this.matriculaDAO = matriculaDAO;
     }
 
-  
     public boolean matricularMateria(String idMatricula, String codigoEstudiantil, Materia materia) {
         List<Matricula> matriculasEstudiante = matriculaDAO.listarPorEstudiante(codigoEstudiantil);
         
@@ -34,12 +32,10 @@ public class ControladorAcademico {
         return matriculaDAO.guardar(nuevaMatricula);
     }
 
-   
     public List<Materia> obtenerTodasLasMaterias() {
         return materiaDAO.listarTodas();
     }
 
-    
     public List<Matricula> obtenerMateriasEstudiante(String codigoEstudiantil) {
         return matriculaDAO.listarPorEstudiante(codigoEstudiantil);
     }
