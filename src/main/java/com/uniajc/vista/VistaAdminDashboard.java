@@ -1,4 +1,4 @@
-package com.vista;
+package com.uniajc.vista;
 
 import com.uniajc.dao.IUsuarioDAO;
 import com.uniajc.dao.impl.UsuarioDAOImpl;

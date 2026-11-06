@@ -1,4 +1,4 @@
-package com.vista;
+package com.uniajc.vista;
 
 import com.uniajc.controlador.ControladorLogin;
 import com.uniajc.dao.IUsuarioDAO;
@@ -125,11 +125,13 @@ public class VistaLogin extends JFrame {
                 new VistaAdminDashboard(usuarioDAO, usuario).mostrarPanelAdmin();
                 dispose();
                 break;
-            case PROFESOR:
             case ESTUDIANTE:
-                JOptionPane.showMessageDialog(this, 
-                        "Inicio de sesión exitoso como " + usuario.getRol() + " (" + usuario.getNombreCompleto() + ").\n"
-                        + "Redireccionando a la interfaz correspondiente...");
+                new VistaAcademica(usuario).mostrarVentana();
+                dispose();
+                break;
+            case PROFESOR:
+                new VistaAcademica(usuario).mostrarVentana();
+                dispose();
                 break;
         }
     }
@@ -148,4 +150,3 @@ public class VistaLogin extends JFrame {
         SwingUtilities.invokeLater(() -> setVisible(true));
     }
 }
-

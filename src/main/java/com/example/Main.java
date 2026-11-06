@@ -2,7 +2,7 @@ package com.example;
 
 import javax.swing.SwingUtilities;
 
-import com.vista.VistaLogin;
+import com.uniajc.vista.VistaLogin;
 
 public class Main {
     public static void main(String[] args) {

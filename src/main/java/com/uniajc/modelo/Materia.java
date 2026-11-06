@@ -8,6 +8,13 @@ public class Materia {
 
     public Materia() {}
 
+    public Materia(String codigoMateria, String nombreMateria, int creditos, int semestre) {
+        this.codigoMateria = codigoMateria;
+        this.nombreMateria = nombreMateria;
+        this.creditos = creditos;
+        this.semestre = semestre;
+    }
+
     public String getCodigoMateria() { return codigoMateria; }
     public void setCodigoMateria(String codigoMateria) { this.codigoMateria = codigoMateria; }
 

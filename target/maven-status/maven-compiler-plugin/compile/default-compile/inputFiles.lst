@@ -17,5 +17,6 @@ C:\Users\ASUS\Documents\412\academiall\src\main\java\com\uniajc\modelo\Matricula
 C:\Users\ASUS\Documents\412\academiall\src\main\java\com\uniajc\modelo\Profesor.java
 C:\Users\ASUS\Documents\412\academiall\src\main\java\com\uniajc\modelo\Usuario.java
 C:\Users\ASUS\Documents\412\academiall\src\main\java\com\uniajc\util\ConexionBD.java
-C:\Users\ASUS\Documents\412\academiall\src\main\java\com\vista\VistaAdminDashboard.java
-C:\Users\ASUS\Documents\412\academiall\src\main\java\com\vista\VistaLogin.java
+C:\Users\ASUS\Documents\412\academiall\src\main\java\com\uniajc\vista\VistaAcademica.java
+C:\Users\ASUS\Documents\412\academiall\src\main\java\com\uniajc\vista\VistaAdminDashboard.java
+C:\Users\ASUS\Documents\412\academiall\src\main\java\com\uniajc\vista\VistaLogin.java
