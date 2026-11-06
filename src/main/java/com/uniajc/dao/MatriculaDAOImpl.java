@@ -31,4 +31,16 @@ public class MatriculaDAOImpl implements IMatriculaDAO {
         System.out.println("Actualizando estado de matrícula a: " + estado);
         return true;
     }
+
+    @Override
+    public boolean actualizarEstado1(Long idMatricula, EstadoMatricula estado) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'actualizarEstado1'");
+    }
+
+    @Override
+    public void actualizarEstado(Long idMatricula, EstadoMatricula nuevoEstado) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'actualizarEstado'");
+    }
 }

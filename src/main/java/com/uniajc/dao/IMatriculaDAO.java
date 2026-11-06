@@ -9,5 +9,7 @@ public interface IMatriculaDAO {
     boolean guardar(Matricula matricula);
     Matricula buscarPorId(String idMatricula);
     List<Matricula> listarPorEstudiante(String codigoEstudiantil);
+    boolean actualizarEstado1(Long idMatricula, EstadoMatricula estado);
+    void actualizarEstado(Long idMatricula, EstadoMatricula nuevoEstado);
     boolean actualizarEstado(String idMatricula, EstadoMatricula estado);
 }
