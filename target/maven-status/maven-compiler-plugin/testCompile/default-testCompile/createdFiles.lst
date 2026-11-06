@@ -1,5 +1,0 @@
-com\academiall\model\UsuarioTest.class
-com\academiall\controller\ControladorLoginTest$MockUsuarioDAO.class
-com\academiall\dao\UsuarioDAOTest.class
-com\academiall\controller\ControladorLoginTest.class
-com\academiall\dao\UsuarioDAOTest$UsuarioDAOMock.class

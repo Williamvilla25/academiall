@@ -18,37 +18,26 @@ import java.util.List;
 
 public class UsuarioDAOImpl implements IUsuarioDAO {
 
-    public UsuarioDAOImpl() {
-        crearTablaSiNoExiste();
+    private String ultimoError = null;
+
+    public String getUltimoError() {
+        return ultimoError;
     }
 
-    private void crearTablaSiNoExiste() {
-        String sql = "CREATE TABLE IF NOT EXISTS usuarios (" +
-                "id_usuario VARCHAR(50) PRIMARY KEY, " +
-                "nombre VARCHAR(100) NOT NULL, " +
-                "apellido VARCHAR(100) NOT NULL, " +
-                "correo VARCHAR(150) UNIQUE NOT NULL, " +
-                "telefono VARCHAR(30), " +
-                "contrasena VARCHAR(100) NOT NULL, " +
-                "estado VARCHAR(20) NOT NULL, " +
-                "rol VARCHAR(30) NOT NULL, " +
-                "campo_extra_1 VARCHAR(100), " +
-                "campo_extra_2 VARCHAR(100), " +
-                "semestre_actual INT" +
-                ");";
-        try {
-            Connection conn = ConexionBD.obtenerInstancia().getConexion();
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                stmt.execute();
-            }
-        } catch (Exception e) {
-            System.err.println("Aviso al verificar/crear tabla usuarios: " + e.getMessage());
-        }
-    }
+    private static final String SELECT_BASE =
+            "SELECT u.id_usuario, u.nombre, u.apellido, u.correo, u.telefono, u.contrasena, " +
+            "       u.rol::text AS rol, u.estado::text AS estado, " +
+            "       a.nivel_acceso, a.departamento, " +
+            "       p.codigo_profesor, p.especialidad, " +
+            "       e.codigo_estudiantil, e.programa_academico, e.semestre_actual " +
+            "FROM usuarios u " +
+            "LEFT JOIN administradores a ON u.id_usuario = a.id_usuario " +
+            "LEFT JOIN profesores p ON u.id_usuario = p.id_usuario " +
+            "LEFT JOIN estudiantes e ON u.id_usuario = e.id_usuario ";
 
     @Override
     public Usuario buscarPorCorreo(String correo) {
-        String sql = "SELECT * FROM usuarios WHERE correo = ?";
+        String sql = SELECT_BASE + "WHERE u.correo = ?";
         try {
             Connection conn = ConexionBD.obtenerInstancia().getConexion();
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -60,6 +49,7 @@ public class UsuarioDAOImpl implements IUsuarioDAO {
                 }
             }
         } catch (SQLException e) {
+            ultimoError = e.getMessage();
             System.err.println("Error en buscarPorCorreo: " + e.getMessage());
         }
         return null;
@@ -67,7 +57,7 @@ public class UsuarioDAOImpl implements IUsuarioDAO {
 
     @Override
     public Usuario buscarPorId(String idUsuario) {
-        String sql = "SELECT * FROM usuarios WHERE id_usuario = ?";
+        String sql = SELECT_BASE + "WHERE u.id_usuario = ?";
         try {
             Connection conn = ConexionBD.obtenerInstancia().getConexion();
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -79,6 +69,7 @@ public class UsuarioDAOImpl implements IUsuarioDAO {
                 }
             }
         } catch (SQLException e) {
+            ultimoError = e.getMessage();
             System.err.println("Error en buscarPorId: " + e.getMessage());
         }
         return null;
@@ -95,97 +86,153 @@ public class UsuarioDAOImpl implements IUsuarioDAO {
 
     @Override
     public boolean insertar(Usuario usuario) {
-        String sql = "INSERT INTO usuarios (id_usuario, nombre, apellido, correo, telefono, contrasena, estado, rol, campo_extra_1, campo_extra_2, semestre_actual) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        ultimoError = null;
+        String sqlUsuario = "INSERT INTO usuarios (id_usuario, nombre, apellido, correo, telefono, contrasena, rol, estado) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?::rol_usuario, ?::estado_usuario)";
+        Connection conn = null;
         try {
-            Connection conn = ConexionBD.obtenerInstancia().getConexion();
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            conn = ConexionBD.obtenerInstancia().getConexion();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlUsuario)) {
                 stmt.setString(1, usuario.getIdUsuario());
                 stmt.setString(2, usuario.getNombre());
                 stmt.setString(3, usuario.getApellido());
                 stmt.setString(4, usuario.getCorreo());
                 stmt.setString(5, usuario.getTelefono());
                 stmt.setString(6, usuario.getContrasena());
-                stmt.setString(7, usuario.getEstado() != null ? usuario.getEstado().name() : EstadoUsuario.ACTIVO.name());
-                stmt.setString(8, usuario.getRol() != null ? usuario.getRol().name() : RolUsuario.ESTUDIANTE.name());
-
-                if (usuario instanceof Administrador admin) {
-                    stmt.setString(9, admin.getNivelAcceso());
-                    stmt.setString(10, admin.getDepartamento());
-                    stmt.setObject(11, null);
-                } else if (usuario instanceof Profesor prof) {
-                    stmt.setString(9, prof.getEspecialidad());
-                    stmt.setString(10, prof.getCodigoProfesor());
-                    stmt.setObject(11, null);
-                } else if (usuario instanceof Estudiante est) {
-                    stmt.setString(9, est.getCodigoEstudiantil());
-                    stmt.setString(10, est.getProgramaAcademico());
-                    stmt.setInt(11, est.getSemestreActual());
-                } else {
-                    stmt.setString(9, null);
-                    stmt.setString(10, null);
-                    stmt.setObject(11, null);
-                }
-
-                return stmt.executeUpdate() > 0;
+                stmt.setString(7, usuario.getRol() != null ? usuario.getRol().name().toUpperCase() : "ESTUDIANTE");
+                stmt.setString(8, usuario.getEstado() != null ? usuario.getEstado().name().toUpperCase() : "ACTIVO");
+                stmt.executeUpdate();
             }
+
+            if (usuario instanceof Administrador admin) {
+                String sqlAdmin = "INSERT INTO administradores (id_usuario, nivel_acceso, departamento) VALUES (?, ?, ?)";
+                try (PreparedStatement stmt = conn.prepareStatement(sqlAdmin)) {
+                    stmt.setString(1, admin.getIdUsuario());
+                    stmt.setString(2, admin.getNivelAcceso());
+                    stmt.setString(3, admin.getDepartamento());
+                    stmt.executeUpdate();
+                }
+            } else if (usuario instanceof Profesor prof) {
+                String sqlProf = "INSERT INTO profesores (id_usuario, codigo_profesor, especialidad) VALUES (?, ?, ?)";
+                try (PreparedStatement stmt = conn.prepareStatement(sqlProf)) {
+                    stmt.setString(1, prof.getIdUsuario());
+                    stmt.setString(2, prof.getCodigoProfesor());
+                    stmt.setString(3, prof.getEspecialidad());
+                    stmt.executeUpdate();
+                }
+            } else if (usuario instanceof Estudiante est) {
+                String sqlEst = "INSERT INTO estudiantes (id_usuario, codigo_estudiantil, programa_academico, semestre_actual) VALUES (?, ?, ?, ?)";
+                try (PreparedStatement stmt = conn.prepareStatement(sqlEst)) {
+                    stmt.setString(1, est.getIdUsuario());
+                    stmt.setString(2, est.getCodigoEstudiantil());
+                    stmt.setString(3, est.getProgramaAcademico());
+                    stmt.setInt(4, est.getSemestreActual());
+                    stmt.executeUpdate();
+                }
+            }
+
+            conn.commit();
+            conn.setAutoCommit(true);
+            return true;
         } catch (SQLException e) {
+            ultimoError = e.getMessage();
             System.err.println("Error en insertar usuario: " + e.getMessage());
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                    conn.setAutoCommit(true);
+                } catch (SQLException ex) {
+                    System.err.println("Error en rollback: " + ex.getMessage());
+                }
+            }
             return false;
         }
     }
 
     @Override
     public boolean actualizar(Usuario usuario) {
-        String sql = "UPDATE usuarios SET nombre = ?, apellido = ?, telefono = ?, contrasena = ?, estado = ?, campo_extra_1 = ?, campo_extra_2 = ?, semestre_actual = ? " +
-                     "WHERE id_usuario = ?";
+        ultimoError = null;
+        String sqlUsuario = "UPDATE usuarios SET nombre = ?, apellido = ?, telefono = ?, contrasena = ?, " +
+                            "rol = ?::rol_usuario, estado = ?::estado_usuario WHERE id_usuario = ?";
+        Connection conn = null;
         try {
-            Connection conn = ConexionBD.obtenerInstancia().getConexion();
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            conn = ConexionBD.obtenerInstancia().getConexion();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement stmt = conn.prepareStatement(sqlUsuario)) {
                 stmt.setString(1, usuario.getNombre());
                 stmt.setString(2, usuario.getApellido());
                 stmt.setString(3, usuario.getTelefono());
                 stmt.setString(4, usuario.getContrasena());
-                stmt.setString(5, usuario.getEstado() != null ? usuario.getEstado().name() : EstadoUsuario.ACTIVO.name());
-
-                if (usuario instanceof Administrador admin) {
-                    stmt.setString(6, admin.getNivelAcceso());
-                    stmt.setString(7, admin.getDepartamento());
-                    stmt.setObject(8, null);
-                } else if (usuario instanceof Profesor prof) {
-                    stmt.setString(6, prof.getEspecialidad());
-                    stmt.setString(7, prof.getCodigoProfesor());
-                    stmt.setObject(8, null);
-                } else if (usuario instanceof Estudiante est) {
-                    stmt.setString(6, est.getCodigoEstudiantil());
-                    stmt.setString(7, est.getProgramaAcademico());
-                    stmt.setInt(8, est.getSemestreActual());
-                } else {
-                    stmt.setString(6, null);
-                    stmt.setString(7, null);
-                    stmt.setObject(8, null);
-                }
-
-                stmt.setString(9, usuario.getIdUsuario());
-                return stmt.executeUpdate() > 0;
+                stmt.setString(5, usuario.getRol() != null ? usuario.getRol().name().toUpperCase() : "ESTUDIANTE");
+                stmt.setString(6, usuario.getEstado() != null ? usuario.getEstado().name().toUpperCase() : "ACTIVO");
+                stmt.setString(7, usuario.getIdUsuario());
+                stmt.executeUpdate();
             }
+
+            if (usuario instanceof Administrador admin) {
+                String sqlAdmin = "INSERT INTO administradores (id_usuario, nivel_acceso, departamento) VALUES (?, ?, ?) " +
+                                  "ON CONFLICT (id_usuario) DO UPDATE SET nivel_acceso = EXCLUDED.nivel_acceso, departamento = EXCLUDED.departamento";
+                try (PreparedStatement stmt = conn.prepareStatement(sqlAdmin)) {
+                    stmt.setString(1, admin.getIdUsuario());
+                    stmt.setString(2, admin.getNivelAcceso());
+                    stmt.setString(3, admin.getDepartamento());
+                    stmt.executeUpdate();
+                }
+            } else if (usuario instanceof Profesor prof) {
+                String sqlProf = "INSERT INTO profesores (id_usuario, codigo_profesor, especialidad) VALUES (?, ?, ?) " +
+                                 "ON CONFLICT (id_usuario) DO UPDATE SET codigo_profesor = EXCLUDED.codigo_profesor, especialidad = EXCLUDED.especialidad";
+                try (PreparedStatement stmt = conn.prepareStatement(sqlProf)) {
+                    stmt.setString(1, prof.getIdUsuario());
+                    stmt.setString(2, prof.getCodigoProfesor());
+                    stmt.setString(3, prof.getEspecialidad());
+                    stmt.executeUpdate();
+                }
+            } else if (usuario instanceof Estudiante est) {
+                String sqlEst = "INSERT INTO estudiantes (id_usuario, codigo_estudiantil, programa_academico, semestre_actual) VALUES (?, ?, ?, ?) " +
+                                "ON CONFLICT (id_usuario) DO UPDATE SET codigo_estudiantil = EXCLUDED.codigo_estudiantil, programa_academico = EXCLUDED.programa_academico, semestre_actual = EXCLUDED.semestre_actual";
+                try (PreparedStatement stmt = conn.prepareStatement(sqlEst)) {
+                    stmt.setString(1, est.getIdUsuario());
+                    stmt.setString(2, est.getCodigoEstudiantil());
+                    stmt.setString(3, est.getProgramaAcademico());
+                    stmt.setInt(4, est.getSemestreActual());
+                    stmt.executeUpdate();
+                }
+            }
+
+            conn.commit();
+            conn.setAutoCommit(true);
+            return true;
         } catch (SQLException e) {
+            ultimoError = e.getMessage();
             System.err.println("Error en actualizar usuario: " + e.getMessage());
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                    conn.setAutoCommit(true);
+                } catch (SQLException ex) {
+                    System.err.println("Error en rollback: " + ex.getMessage());
+                }
+            }
             return false;
         }
     }
 
     @Override
     public boolean actualizarEstado(String idUsuario, EstadoUsuario estado) {
-        String sql = "UPDATE usuarios SET estado = ? WHERE id_usuario = ?";
+        ultimoError = null;
+        String sql = "UPDATE usuarios SET estado = ?::estado_usuario WHERE id_usuario = ?";
         try {
             Connection conn = ConexionBD.obtenerInstancia().getConexion();
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                stmt.setString(1, estado.name());
+                stmt.setString(1, estado.name().toUpperCase());
                 stmt.setString(2, idUsuario);
                 return stmt.executeUpdate() > 0;
             }
         } catch (SQLException e) {
+            ultimoError = e.getMessage();
             System.err.println("Error en actualizarEstado: " + e.getMessage());
             return false;
         }
@@ -194,7 +241,7 @@ public class UsuarioDAOImpl implements IUsuarioDAO {
     @Override
     public List<Usuario> listarTodos() {
         List<Usuario> usuarios = new ArrayList<>();
-        String sql = "SELECT * FROM usuarios ORDER BY id_usuario ASC";
+        String sql = SELECT_BASE + "ORDER BY u.id_usuario ASC";
         try {
             Connection conn = ConexionBD.obtenerInstancia().getConexion();
             try (PreparedStatement stmt = conn.prepareStatement(sql);
@@ -204,6 +251,7 @@ public class UsuarioDAOImpl implements IUsuarioDAO {
                 }
             }
         } catch (SQLException e) {
+            ultimoError = e.getMessage();
             System.err.println("Error en listarTodos: " + e.getMessage());
         }
         return usuarios;
@@ -216,23 +264,46 @@ public class UsuarioDAOImpl implements IUsuarioDAO {
         String correo = rs.getString("correo");
         String telefono = rs.getString("telefono");
         String contrasena = rs.getString("contrasena");
-        EstadoUsuario estado = EstadoUsuario.valueOf(rs.getString("estado"));
-        RolUsuario rol = RolUsuario.valueOf(rs.getString("rol"));
+        
+        String rolStr = rs.getString("rol");
+        RolUsuario rol = parseRol(rolStr);
 
-        String extra1 = rs.getString("campo_extra_1");
-        String extra2 = rs.getString("campo_extra_2");
-        int semestre = rs.getInt("semestre_actual");
+        String estadoStr = rs.getString("estado");
+        EstadoUsuario estado = parseEstado(estadoStr);
 
-        switch (rol) {
-            case ADMINISTRADOR:
-                return new Administrador(idUsuario, nombre, apellido, correo, telefono, contrasena, estado, extra1, extra2);
-            case PROFESOR:
-                return new Profesor(idUsuario, nombre, apellido, correo, telefono, contrasena, estado, extra1, extra2);
-            case ESTUDIANTE:
-                return new Estudiante(idUsuario, nombre, apellido, correo, telefono, contrasena, estado, extra1, extra2, semestre);
-            default:
-                return new Usuario(idUsuario, nombre, apellido, correo, telefono, contrasena, estado, rol);
+        if (rol == RolUsuario.ADMINISTRADOR) {
+            String nivelAcceso = rs.getString("nivel_acceso");
+            String departamento = rs.getString("departamento");
+            return new Administrador(idUsuario, nombre, apellido, correo, telefono, contrasena, estado, nivelAcceso, departamento);
+        } else if (rol == RolUsuario.PROFESOR) {
+            String especialidad = rs.getString("especialidad");
+            String codigoProfesor = rs.getString("codigo_profesor");
+            return new Profesor(idUsuario, nombre, apellido, correo, telefono, contrasena, estado, especialidad, codigoProfesor);
+        } else if (rol == RolUsuario.ESTUDIANTE) {
+            String codigoEstudiantil = rs.getString("codigo_estudiantil");
+            String programaAcademico = rs.getString("programa_academico");
+            int semestre = rs.getInt("semestre_actual");
+            return new Estudiante(idUsuario, nombre, apellido, correo, telefono, contrasena, estado, codigoEstudiantil, programaAcademico, semestre);
+        } else {
+            return new Usuario(idUsuario, nombre, apellido, correo, telefono, contrasena, estado, rol);
+        }
+    }
+
+    private RolUsuario parseRol(String rolStr) {
+        if (rolStr == null) return RolUsuario.ESTUDIANTE;
+        try {
+            return RolUsuario.valueOf(rolStr.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return RolUsuario.ESTUDIANTE;
+        }
+    }
+
+    private EstadoUsuario parseEstado(String estadoStr) {
+        if (estadoStr == null) return EstadoUsuario.ACTIVO;
+        try {
+            return EstadoUsuario.valueOf(estadoStr.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return EstadoUsuario.ACTIVO;
         }
     }
 }
-
