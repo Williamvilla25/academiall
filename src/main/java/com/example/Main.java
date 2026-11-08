@@ -1,7 +1,14 @@
 package com.example;
 
+import javax.swing.SwingUtilities;
+
+import com.uniajc.vista.VistaLogin;
+
 public class Main {
     public static void main(String[] args) {
-        System.out.println("Hello world!");
+        SwingUtilities.invokeLater(() -> {
+            VistaLogin vistaLogin = new VistaLogin();
+            vistaLogin.mostrarVentana();
+        });
     }
 }
